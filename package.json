@@ -8,11 +8,27 @@
   "description": "[![Actions Status](https://github.com/pawelmakarewicz/backend-project-4/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/pawelmakarewicz/backend-project-4/actions)",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "jest"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
     "commander": "^12.1.0"
+  },
+  "lint-staged": {
+    "*.js": "eslint --fix"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3.1.0",
+    "@eslint/js": "^9.7.0",
+    "@jest/globals": "^29.7.0",
+    "eslint": "^8.57.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.29.1",
+    "globals": "^15.8.0",
+    "jest": "^29.7.0",
+    "jest-cli": "^29.7.0",
+    "lint-staged": "^15.2.7",
+    "npm-check-updates": "^16.14.20"
   }
 }
