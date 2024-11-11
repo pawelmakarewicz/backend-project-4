@@ -8,11 +8,12 @@
   "description": "[![Actions Status](https://github.com/pawelmakarewicz/backend-project-4/actions/workflows/hexlet-check.yml/badge.svg)](https://github.com/pawelmakarewicz/backend-project-4/actions)",
   "main": "index.js",
   "scripts": {
-    "test": "jest"
+    "test": "NODE_OPTIONS=--experimental-vm-modules jest"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^1.7.7",
     "commander": "^12.1.0"
   },
   "lint-staged": {

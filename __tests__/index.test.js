@@ -26,7 +26,7 @@ describe('pageLoader', () => {
   });
 
   test('should fetch data from URL, save it to a file, and return the file path', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), `page-loader-${Date.now()}-`));
+    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), `page-loader-1-${Date.now()}-`));
     const expectedFilePath = path.join(tempDir, 'ru-hexlet-io-courses.html');
 
     try {
