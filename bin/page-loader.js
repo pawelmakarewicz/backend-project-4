@@ -8,7 +8,7 @@ program
   .version('1.0.0')
   .option('-o, --output [dir]', 'output dir', process.cwd())
   .arguments('<url>')
-  .action((url, options) => {
-    pageLoader(url, options.output);
+  .action((url, { output }) => {
+    pageLoader({ url, output });
   });
 program.parse();
