@@ -1,43 +1,7 @@
 import path from 'path';
-import * as cheerio from 'cheerio';
 import { writeFile, mkdir } from 'node:fs/promises';
-import httpClient from '../client/client.js';
-
-function formatUrl(url) {
-  const urlWithoutProtocol = url.replace(/^https?:\/\//, '');
-  const [domainPart] = urlWithoutProtocol.split('/');
-  const formattedDomain = domainPart.replace(/\./g, '-');
-  const formattedFullUrl = urlWithoutProtocol
-    .replace(/\./g, '-')
-    .replace(/\//g, '-');
-
-  return { domain: formattedDomain, fullUrl: formattedFullUrl };
-}
-
-const createTransformPath = (folderName, domain) => (originalPath) => {
-  const cleanPath = originalPath.startsWith('/')
-    ? originalPath.substring(1)
-    : originalPath;
-  const pathWithDashes = cleanPath.replace(/\//g, '-');
-  return `${folderName}/${domain}-${pathWithDashes}`;
-};
-
-const transformImagePaths = (htmlData, transformFn) => {
-  const $ = cheerio.load(htmlData);
-  const originalPaths = [];
-
-  $('img').each((_, el) => {
-    const $img = $(el);
-    const originalSrc = $img.attr('src');
-    if (originalSrc) {
-      originalPaths.push(originalSrc);
-      const newSrc = transformFn(originalSrc);
-      $img.attr('src', newSrc);
-    }
-  });
-
-  return { originalPaths, modifiedHtml: $.html() };
-};
+import httpClient from './client/client.js';
+import { createTransformPath, transformImagePaths, formatUrl } from './lib/lib.js';
 
 export default function pageLoader({ url, output }) {
   const outputDir = output || process.cwd();
@@ -88,7 +52,10 @@ export default function pageLoader({ url, output }) {
         return httpClient
           .getBinary(fullImageUrl)
           .then((imageData) => writeFile(imagePath, Buffer.from(imageData)))
-          .catch((err) => console.log(`Ошибка ${originalPath}:`, err.message));
+          .catch((err) => {
+            console.log(`Ошибка ${originalPath}:`, err.message);
+            return null;
+          });
       }),
     ))
     .then(() => {

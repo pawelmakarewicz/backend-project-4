@@ -2,7 +2,7 @@ import path from 'path';
 import fs from 'fs/promises';
 import os from 'os';
 import nock from 'nock';
-import pageLoader from '../lib/pageLoader.js';
+import pageLoader from '../app.js';
 
 describe('pageLoader', () => {
   const url = 'https://ru.hexlet.io/courses';
