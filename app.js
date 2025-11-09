@@ -1,7 +1,11 @@
 import path from 'path';
 import { writeFile, mkdir } from 'node:fs/promises';
 import httpClient from './client/client.js';
-import { createTransformPath, transformImagePaths, formatUrl } from './lib/lib.js';
+import {
+  createTransformPath,
+  transformImagePaths,
+  formatUrl,
+} from './lib/lib.js';
 
 export default function pageLoader({ url, output }) {
   const outputDir = output || process.cwd();
@@ -9,6 +13,7 @@ export default function pageLoader({ url, output }) {
   let originalPaths;
   let folderName;
   let domain;
+  let pathToOutputFile;
 
   // 1. Скачать файл
   return httpClient
@@ -29,36 +34,43 @@ export default function pageLoader({ url, output }) {
 
       // Сохранить HTML
       const fileName = `${fullUrl}.html`;
-      const pathToOutputFile = path.join(outputDir, fileName);
+      pathToOutputFile = path.join(outputDir, fileName);
       return writeFile(pathToOutputFile, modifiedHtml);
     })
     .then(() => {
+      if (originalPaths.length === 0) {
+        console.log('Картинок не найдено, пропускаем скачивание');
+        return Promise.resolve();
+      }
       // 3. Создать папку
       const folderPath = path.join(outputDir, folderName);
-      return mkdir(folderPath, { recursive: true });
+      return mkdir(folderPath, { recursive: true }).then(() => Promise.all(
+        originalPaths.map((originalPath) => {
+          const fullImageUrl = originalPath.startsWith('http')
+            ? originalPath
+            : new URL(originalPath, url).href;
+
+          const cleanPath = originalPath.startsWith('/')
+            ? originalPath.substring(1)
+            : originalPath;
+          const imageName = `${domain}-${cleanPath.replace(/\//g, '-')}`;
+          const imagePath = path.join(outputDir, folderName, imageName);
+
+          return httpClient
+            .getBinary(fullImageUrl)
+            .then((imageData) => writeFile(imagePath, Buffer.from(imageData)))
+            .catch((err) => {
+              console.log(`Ошибка ${originalPath}:`, err.message);
+              return null;
+            });
+        }),
+      ));
     })
-    .then(() => Promise.all(
-      originalPaths.map((originalPath) => {
-        const fullImageUrl = originalPath.startsWith('http')
-          ? originalPath
-          : new URL(originalPath, url).href;
-
-        const cleanPath = originalPath.startsWith('/')
-          ? originalPath.substring(1)
-          : originalPath;
-        const imageName = `${domain}-${cleanPath.replace(/\//g, '-')}`;
-        const imagePath = path.join(outputDir, folderName, imageName);
-
-        return httpClient
-          .getBinary(fullImageUrl)
-          .then((imageData) => writeFile(imagePath, Buffer.from(imageData)))
-          .catch((err) => {
-            console.log(`Ошибка ${originalPath}:`, err.message);
-            return null;
-          });
-      }),
-    ))
     .then(() => {
-      console.log('Готово!');
+      console.log(pathToOutputFile);
+      return pathToOutputFile;
+    })
+    .catch((err) => {
+      console.error('Ошибка:', err.message);
     });
 }
