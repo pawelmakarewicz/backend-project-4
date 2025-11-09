@@ -4,10 +4,10 @@ import os from 'os';
 import nock from 'nock';
 import pageLoader from '../app.js';
 
-describe('pageLoader', () => {
-  const url = 'https://ru.hexlet.io/courses';
-  const mockResponseData = '<html><body>Mocked HTML content</body></html>';
+const url = 'https://ru.hexlet.io/courses';
+const mockResponseData = '<html><head><title>Mocked Page</title></head><body>Mocked HTML content</body></html>';
 
+describe('pageLoader', () => {
   beforeAll(() => {
     // Ensure nock is active
     nock.disableNetConnect();
@@ -20,13 +20,13 @@ describe('pageLoader', () => {
 
   beforeEach(() => {
     // Set up nock to intercept the request and respond with mock data
-    nock('https://ru.hexlet.io')
-      .get('/courses')
-      .reply(200, mockResponseData);
+    nock('https://ru.hexlet.io').get('/courses').reply(200, mockResponseData);
   });
 
   test('should fetch data from URL, save it to a file, and return the file path', async () => {
-    const tempDir = await fs.mkdtemp(path.join(os.tmpdir(), `page-loader-1-${Date.now()}-`));
+    const tempDir = await fs.mkdtemp(
+      path.join(os.tmpdir(), `page-loader-1-${Date.now()}-`),
+    );
     const expectedFilePath = path.join(tempDir, 'ru-hexlet-io-courses.html');
 
     try {
