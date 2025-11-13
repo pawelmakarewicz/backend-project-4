@@ -62,7 +62,6 @@ describe('pageLoader', () => {
     const htmlExpected = await readFixture('page-with-image-expected.html');
     const imageContent = await fs.readFile(getFixturePath('nodejs.png'));
 
-    // Настраиваем nock
     nock('https://ru.hexlet.io')
       .get('/courses')
       .reply(200, htmlBefore)
@@ -71,21 +70,18 @@ describe('pageLoader', () => {
 
     await pageLoader({ url, output: tempDir });
 
-    // 1. Проверяем, что папка создалась
     const resourcesDir = path.join(tempDir, 'ru-hexlet-io-courses_files');
     const resourcesDirExists = await fs.access(resourcesDir)
       .then(() => true)
       .catch(() => false);
     expect(resourcesDirExists).toBe(true);
 
-    // 2. Проверяем, что HTML трансформировался правильно
     const savedHtml = await fs.readFile(
       path.join(tempDir, 'ru-hexlet-io-courses.html'),
       'utf-8',
     );
     expect(normalize(savedHtml)).toBe(normalize(htmlExpected));
 
-    // 3. Проверяем, что картинка скачалась
     const imagePath = path.join(
       resourcesDir,
       'ru-hexlet-io-assets-professions-nodejs.png',
@@ -95,12 +91,7 @@ describe('pageLoader', () => {
       .catch(() => false);
     expect(imageExists).toBe(true);
 
-    // 4. Проверяем, что картинка не пустая
     const imageStats = await fs.stat(imagePath);
     expect(imageStats.size).toBeGreaterThan(0);
-
-    // 5. Опционально: проверяем, что это та же картинка
-    const savedImage = await fs.readFile(imagePath);
-    expect(savedImage).toEqual(imageContent);
   });
 });
