@@ -57,7 +57,7 @@ export default function pageLoader({ url, output }) {
 
           return httpClient
             .getBinary(fullImageUrl)
-            .then((imageData) => writeFile(imagePath, Buffer.from(imageData)))
+            .then((imageData) => writeFile(imagePath, imageData))
             .catch((err) => {
               console.log(`Ошибка ${originalPath}:`, err.message);
               return null;
