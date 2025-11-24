@@ -32,7 +32,6 @@ export default function pageLoader({ url, output }) {
       const { modifiedHtml, originalPaths: ps } = result;
       originalPaths = ps;
 
-      // Сохранить HTML
       const fileName = `${fullUrl}.html`;
       pathToOutputFile = path.join(outputDir, fileName);
       return writeFile(pathToOutputFile, modifiedHtml);
