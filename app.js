@@ -9,7 +9,6 @@ import {
 
 export default function pageLoader({ url, output }) {
   const outputDir = output || process.cwd();
-  let htmlData;
   let originalPaths;
   let folderName;
   let domain;
@@ -19,15 +18,13 @@ export default function pageLoader({ url, output }) {
   return httpClient
     .get(url)
     .then((data) => {
-      htmlData = data;
-
       // 2. Трансформировать его
       const { domain: d, fullUrl } = formatUrl(url);
       domain = d;
       folderName = `${fullUrl}_files`;
 
       const transformPath = createTransformPath(folderName, domain);
-      const result = transformImagePaths(htmlData, transformPath);
+      const result = transformImagePaths(data, transformPath);
 
       const { modifiedHtml, originalPaths: ps } = result;
       originalPaths = ps;
