@@ -94,4 +94,44 @@ describe('pageLoader', () => {
     const imageStats = await fs.stat(imagePath);
     expect(imageStats.size).toBeGreaterThan(0);
   });
+  test('should download page with multiple local resources', async () => {
+    const htmlBefore = await readFixture('page-with-resources.html');
+    const htmlExpected = await readFixture('page-with-resources-expected.html');
+
+    const imageContent = await fs.readFile(getFixturePath('nodejs.png'));
+    const cssContent = 'body { background: red; }';
+    const scriptContent = 'console.log("hello")';
+
+    nock('https://ru.hexlet.io')
+      .get('/courses').times(2).reply(200, htmlBefore)
+      .get('/assets/application.css')
+      .reply(200, cssContent)
+      .get('/packs/js/runtime.js')
+      .reply(200, scriptContent)
+      .get('/assets/professions/nodejs.png')
+      .reply(200, imageContent);
+
+    await pageLoader({ url, output: tempDir });
+
+    const savedHtml = await fs.readFile(
+      path.join(tempDir, 'ru-hexlet-io-courses.html'),
+      'utf-8',
+    );
+
+    expect(normalize(savedHtml)).toBe(normalize(htmlExpected));
+
+    const resourcesDir = path.join(tempDir, 'ru-hexlet-io-courses_files');
+
+    const expectedFiles = [
+      'ru-hexlet-io-assets-application.css',
+      'ru-hexlet-io-packs-js-runtime.js',
+      'ru-hexlet-io-assets-professions-nodejs.png',
+    ];
+
+    await Promise.all(expectedFiles.map(async (file) => {
+      const p = path.join(resourcesDir, file);
+      const exists = await fs.access(p).then(() => true).catch(() => false);
+      expect(exists).toBe(true);
+    }));
+  });
 });
