@@ -6,7 +6,17 @@ import {
   createTransformPath,
   transformResources,
   formatUrl,
+  generateResourcePath,
 } from './lib/lib.js';
+
+function resolveResourceUrl(resourceUrl, pageUrl) {
+  try {
+    return new URL(resourceUrl, pageUrl).href;
+  } catch (err) {
+    console.error(`Не удалось разрешить URL: ${resourceUrl}`, err.message);
+    throw err;
+  }
+}
 
 function downloadResource(resourceUrl, resourcePath, originalUrl, resourceType) {
   const downloadMethod = resourceType === 'html'
@@ -33,23 +43,9 @@ function downloadAllResources(resources, pageUrl, domain, folderName, outputPath
   return mkdir(folderPath, { recursive: true })
     .then(() => {
       const downloadPromises = resources.map((resource) => {
-        const fullUrl = resource.url.startsWith('http')
-          ? resource.url
-          : new URL(resource.url, pageUrl).href;
-
-        const cleanPath = resource.url.startsWith('/')
-          ? resource.url.substring(1)
-          : resource.url;
-
-        // Добавляем .html для ресурсов без расширения
-        const hasExtension = cleanPath.includes('.') && !cleanPath.endsWith('/');
-        let fileNameBase = cleanPath.replace(/\//g, '-');
-        if (!hasExtension) {
-          fileNameBase = `${fileNameBase}.html`;
-        }
-
-        const fileName = `${domain}-${fileNameBase}`;
-        const filePath = path.join(outputPath, folderName, fileName);
+        const fullUrl = resolveResourceUrl(resource.url, pageUrl);
+        const resourcePath = generateResourcePath(resource.url, domain, folderName);
+        const filePath = path.join(outputPath, resourcePath);
 
         return downloadResource(fullUrl, filePath, resource.url, resource.type);
       });
@@ -58,7 +54,6 @@ function downloadAllResources(resources, pageUrl, domain, folderName, outputPath
     });
 }
 
-// Основная функция
 export default function pageLoader({ url, output }) {
   const outputDir = output || process.cwd();
 
@@ -69,7 +64,6 @@ export default function pageLoader({ url, output }) {
       const folderName = `${fullUrl}_files`;
       const transformPath = createTransformPath(folderName, domain);
 
-      // Трансформируем ВСЕ ресурсы (img, link, script)
       const { modifiedHtml, resources } = transformResources(
         htmlData,
         url,
@@ -97,21 +91,22 @@ export default function pageLoader({ url, output }) {
       return downloadAllResources(resources, pageUrl, domain, folderName, outputPath)
         .then((results) => {
           const failed = results.filter((r) => !r.success);
+          const succeeded = results.filter((r) => r.success);
+
           if (failed.length > 0) {
             console.warn(`Не удалось загрузить ${failed.length} ресурсов`);
           }
-          const succeeded = results.filter((r) => r.success);
           console.log(`Загружено ресурсов: ${succeeded.length}`);
 
           return pathToOutputFile;
         });
     })
     .then((pathToOutputFile) => {
-      console.log(pathToOutputFile);
+      console.log(`Страница сохранена: ${pathToOutputFile}`);
       return pathToOutputFile;
     })
     .catch((err) => {
-      console.error(err.message);
+      console.error('Ошибка загрузки страницы:', err.message);
       throw err;
     });
 }
