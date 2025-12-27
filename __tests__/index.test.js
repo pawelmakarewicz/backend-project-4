@@ -103,8 +103,7 @@ describe('pageLoader', () => {
     const scriptContent = 'console.log("hello")';
 
     nock('https://ru.hexlet.io')
-      .persist()
-      .get('/courses').reply(200, htmlBefore)
+      .get('/courses').times(2).reply(200, htmlBefore)
       .get('/assets/application.css')
       .reply(200, cssContent)
       .get('/packs/js/runtime.js')
