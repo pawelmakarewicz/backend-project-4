@@ -56,7 +56,6 @@ describe('pageLoader', () => {
     const savedHtml = await fs.readFile(filePath, 'utf-8');
     expect(normalize(savedHtml)).toBe(normalize(simplePageHtml));
   });
-
   test('should download page with image and transform path', async () => {
     const htmlBefore = await readFixture('page-with-image.html');
     const htmlExpected = await readFixture('page-with-image-expected.html');
@@ -133,5 +132,48 @@ describe('pageLoader', () => {
       const exists = await fs.access(p).then(() => true).catch(() => false);
       expect(exists).toBe(true);
     }));
+  });
+  test('should throw error when output directory does not exist', async () => {
+    const nonExistentDir = path.join(tempDir, 'non-existent-folder');
+
+    const simplePageHtml = await readFixture('simple-page.html');
+
+    nock('https://ru.hexlet.io')
+      .get('/courses')
+      .reply(200, simplePageHtml);
+
+    await expect(
+      pageLoader({ url, output: nonExistentDir }),
+    ).rejects.toThrow();
+  });
+
+  test('should throw error when server returns 404', async () => {
+    nock('https://ru.hexlet.io')
+      .get('/courses')
+      .reply(404, 'Not Found');
+
+    await expect(
+      pageLoader({ url, output: tempDir }),
+    ).rejects.toThrow();
+  });
+
+  test('should throw error when server returns 500', async () => {
+    nock('https://ru.hexlet.io')
+      .get('/courses')
+      .reply(500, 'Internal Server Error');
+
+    await expect(
+      pageLoader({ url, output: tempDir }),
+    ).rejects.toThrow();
+  });
+
+  test('should throw error when network request fails', async () => {
+    nock('https://ru.hexlet.io')
+      .get('/courses')
+      .replyWithError('Network error');
+
+    await expect(
+      pageLoader({ url, output: tempDir }),
+    ).rejects.toThrow();
   });
 });
