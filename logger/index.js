@@ -9,7 +9,6 @@ if (!process.env.DEBUG) {
 }
 
 // === Log levels ===
-export const error = debug('app:error');
 export const warn = debug('app:warn');
 export const info = debug('app:info');
 

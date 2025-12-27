@@ -1,7 +1,7 @@
 import path from 'path';
 import { writeFile, mkdir } from 'node:fs/promises';
 import {
-  info, error, warn, resource, fs,
+  info, warn, resource, fs,
 } from './logger/index.js';
 import httpClient from './client/client.js';
 import {
@@ -15,7 +15,7 @@ function resolveResourceUrl(resourceUrl, pageUrl) {
   try {
     return new URL(resourceUrl, pageUrl).href;
   } catch (err) {
-    error('Failed to resolve URL: %s - %s', resourceUrl, err.message);
+    console.error('Failed to resolve URL: %s - %s', resourceUrl, err.message);
     throw err;
   }
 }
@@ -34,7 +34,7 @@ function downloadResource(resourceUrl, resourcePath, originalUrl, resourceType) 
       return { success: true, url: originalUrl };
     })
     .catch((err) => {
-      error('✗ Download failed %s: %s', originalUrl, err.message);
+      console.error('✗ Download failed %s: %s', originalUrl, err.message);
       return { success: false, url: originalUrl, error: err.message };
     });
 }
@@ -124,7 +124,7 @@ export default function pageLoader({ url, output }) {
       return pathToOutputFile;
     })
     .catch((err) => {
-      error('✗ Critical error loading page: %s', err.message);
+      console.error('✗ Critical error loading page: %s', err.message);
       throw err;
     });
 }
