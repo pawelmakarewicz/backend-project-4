@@ -1,12 +1,17 @@
 install:
 	npm ci
-page-loader:
-	node bin/page-loader.js
-publish:
-	npm publish --dry-run
+
 lint:
 	npx eslint .
-lintfix:
-	npx eslint --fix .
+
 test:
 	npm run test
+
+test-debug:
+	DEBUG=app:* npm run test
+
+test-nock:
+	NODE_DEBUG=nock:* npm run test
+
+test-verbose:
+	DEBUG=* npm run test

@@ -1,6 +1,8 @@
-// page-loader.js
 import path from 'path';
 import { writeFile, mkdir } from 'node:fs/promises';
+import {
+  info, error, warn, resource, fs,
+} from './logger/index.js';
 import httpClient from './client/client.js';
 import {
   createTransformPath,
@@ -13,41 +15,49 @@ function resolveResourceUrl(resourceUrl, pageUrl) {
   try {
     return new URL(resourceUrl, pageUrl).href;
   } catch (err) {
-    console.error(`Не удалось разрешить URL: ${resourceUrl}`, err.message);
+    error('Failed to resolve URL: %s - %s', resourceUrl, err.message);
     throw err;
   }
 }
 
 function downloadResource(resourceUrl, resourcePath, originalUrl, resourceType) {
+  resource('Downloading %s: %s', resourceType, originalUrl);
+
   const downloadMethod = resourceType === 'html'
     ? httpClient.get(resourceUrl)
     : httpClient.getBinary(resourceUrl);
 
   return downloadMethod
     .then((data) => writeFile(resourcePath, data))
-    .then(() => ({ success: true, url: originalUrl }))
+    .then(() => {
+      resource('✓ Downloaded: %s', originalUrl);
+      return { success: true, url: originalUrl };
+    })
     .catch((err) => {
-      console.error(`Ошибка загрузки ${originalUrl}:`, err.message);
+      error('✗ Download failed %s: %s', originalUrl, err.message);
       return { success: false, url: originalUrl, error: err.message };
     });
 }
 
 function downloadAllResources(resources, pageUrl, domain, folderName, outputPath) {
   if (resources.length === 0) {
-    console.log('Локальных ресурсов не найдено');
+    info('No local resources found');
     return Promise.resolve([]);
   }
 
+  info('Found %d resources to download', resources.length);
   const folderPath = path.join(outputPath, folderName);
 
   return mkdir(folderPath, { recursive: true })
     .then(() => {
-      const downloadPromises = resources.map((resource) => {
-        const fullUrl = resolveResourceUrl(resource.url, pageUrl);
-        const resourcePath = generateResourcePath(resource.url, domain, folderName);
+      fs('Directory created: %s', folderPath);
+
+      const downloadPromises = resources.map((res) => {
+        const fullUrl = resolveResourceUrl(res.url, pageUrl);
+        const resourcePath = generateResourcePath(res.url, domain, folderName);
         const filePath = path.join(outputPath, resourcePath);
 
-        return downloadResource(fullUrl, filePath, resource.url, resource.type);
+        return downloadResource(fullUrl, filePath, res.url, res.type);
       });
 
       return Promise.all(downloadPromises);
@@ -55,11 +65,14 @@ function downloadAllResources(resources, pageUrl, domain, folderName, outputPath
 }
 
 export default function pageLoader({ url, output }) {
+  info('Starting page download: %s', url);
   const outputDir = output || process.cwd();
 
   return httpClient
     .get(url)
     .then((htmlData) => {
+      info('HTML received, size: %d bytes', htmlData.length);
+
       const { domain, fullUrl } = formatUrl(url);
       const folderName = `${fullUrl}_files`;
       const transformPath = createTransformPath(folderName, domain);
@@ -74,14 +87,17 @@ export default function pageLoader({ url, output }) {
       const pathToOutputFile = path.join(outputDir, fileName);
 
       return writeFile(pathToOutputFile, modifiedHtml)
-        .then(() => ({
-          pathToOutputFile,
-          resources,
-          pageUrl: url,
-          domain,
-          folderName,
-          outputPath: outputDir,
-        }));
+        .then(() => {
+          fs('HTML file saved: %s', pathToOutputFile);
+          return {
+            pathToOutputFile,
+            resources,
+            pageUrl: url,
+            domain,
+            folderName,
+            outputPath: outputDir,
+          };
+        });
     })
     .then((context) => {
       const {
@@ -94,19 +110,21 @@ export default function pageLoader({ url, output }) {
           const succeeded = results.filter((r) => r.success);
 
           if (failed.length > 0) {
-            console.warn(`Не удалось загрузить ${failed.length} ресурсов`);
+            warn('Failed to download %d resources', failed.length);
+            failed.forEach((f) => warn('  - %s', f.url));
           }
-          console.log(`Загружено ресурсов: ${succeeded.length}`);
+
+          info('Successfully downloaded: %d/%d resources', succeeded.length, results.length);
 
           return pathToOutputFile;
         });
     })
     .then((pathToOutputFile) => {
-      console.log(`Страница сохранена: ${pathToOutputFile}`);
+      info('✓ Page fully saved: %s', pathToOutputFile);
       return pathToOutputFile;
     })
     .catch((err) => {
-      console.error('Ошибка загрузки страницы:', err.message);
+      error('✗ Critical error loading page: %s', err.message);
       throw err;
     });
 }
