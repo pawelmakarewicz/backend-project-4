@@ -4,11 +4,15 @@ import pageLoader from '../app.js';
 
 const program = new Command();
 program
-  .description('Page loader utility')
-  .version('1.0.0')
-  .option('-o, --output [dir]', 'output dir', process.cwd())
   .arguments('<url>')
   .action((url, { output }) => {
-    pageLoader({ url, output });
+    pageLoader({ url, output })
+      .then(() => {
+        process.exit(0);
+      })
+      .catch((err) => {
+        console.error(err.message);
+        process.exit(1);
+      });
   });
 program.parse();
