@@ -49,7 +49,7 @@ describe('pageLoader', () => {
 
     const expectedFilePath = path.join(tempDir, 'ru-hexlet-io-courses.html');
 
-    const filePath = await pageLoader({ url, output: tempDir });
+    const filePath = await pageLoader(url, tempDir);
 
     expect(filePath).toBe(expectedFilePath);
 
@@ -67,7 +67,7 @@ describe('pageLoader', () => {
       .get('/assets/professions/nodejs.png')
       .reply(200, imageContent);
 
-    await pageLoader({ url, output: tempDir });
+    await pageLoader(url, tempDir);
 
     const resourcesDir = path.join(tempDir, 'ru-hexlet-io-courses_files');
     const resourcesDirExists = await fs.access(resourcesDir)
@@ -110,7 +110,7 @@ describe('pageLoader', () => {
       .get('/assets/professions/nodejs.png')
       .reply(200, imageContent);
 
-    await pageLoader({ url, output: tempDir });
+    await pageLoader(url, tempDir);
 
     const savedHtml = await fs.readFile(
       path.join(tempDir, 'ru-hexlet-io-courses.html'),
@@ -143,7 +143,7 @@ describe('pageLoader', () => {
       .reply(200, simplePageHtml);
 
     await expect(
-      pageLoader({ url, output: nonExistentDir }),
+      pageLoader(url, nonExistentDir),
     ).rejects.toThrow();
   });
 
@@ -153,7 +153,7 @@ describe('pageLoader', () => {
       .reply(404, 'Not Found');
 
     await expect(
-      pageLoader({ url, output: tempDir }),
+      pageLoader(url, tempDir),
     ).rejects.toThrow();
   });
 
@@ -163,7 +163,7 @@ describe('pageLoader', () => {
       .replyWithError('Network error');
 
     await expect(
-      pageLoader({ url, output: tempDir }),
+      pageLoader(url, tempDir),
     ).rejects.toThrow();
   });
 
@@ -183,7 +183,7 @@ describe('pageLoader', () => {
       .get('/assets/professions/nodejs.png')
       .reply(404, 'Not Found');
 
-    await pageLoader({ url, output: tempDir });
+    await pageLoader(url, tempDir);
 
     const savedHtml = await fs.readFile(
       path.join(tempDir, 'ru-hexlet-io-courses.html'),

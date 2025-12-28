@@ -85,7 +85,7 @@ function downloadAllResources(
   });
 }
 
-export default function pageLoader({ url, output }) {
+export default function pageLoader(url, output = process.cwd()) {
   info('Starting page download: %s', url);
   const outputDir = output || process.cwd();
 
