@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { Command } from 'commander';
-import pageLoader from '../index.js';
+import { Command } from 'commander'
+import pageLoader from '../index.js'
 
-const program = new Command();
+const program = new Command()
 program
   .description('Page loader utility')
   .version('1.0.0')
@@ -11,8 +11,8 @@ program
   .action((url, { output }) => {
     pageLoader(url, output)
       .catch((err) => {
-        console.error(err.message);
-        process.exit(1);
-      });
-  });
-program.parse();
+        console.error(err.message)
+        process.exit(1)
+      })
+  })
+program.parse()

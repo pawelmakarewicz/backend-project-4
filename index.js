@@ -1,3 +1,3 @@
-import pageLoader from './app.js';
+import pageLoader from './app.js'
 
-export default pageLoader;
+export default pageLoader
