@@ -24,6 +24,7 @@
     "*.js": "eslint --fix"
   },
  "devDependencies": {
+  "@stylistic/eslint-plugin": "^2.3.0",
     "@eslint/eslintrc": "^3.1.0",
     "@eslint/js": "^9.39.2",
     "@jest/globals": "^29.7.0",
