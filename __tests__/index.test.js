@@ -173,20 +173,14 @@ describe('pageLoader', () => {
     const cssContent = 'body { background: red; }';
     const scriptContent = 'console.log("hello")';
 
-    const DELAY_MS = 2000;
-
     nock('https://ru.hexlet.io')
       .get('/courses')
-      .delay(DELAY_MS)
       .reply(200, htmlBefore)
       .get('/assets/application.css')
-      .delay(DELAY_MS)
       .reply(200, cssContent)
       .get('/packs/js/runtime.js')
-      .delay(DELAY_MS)
       .reply(200, scriptContent)
       .get('/assets/professions/nodejs.png')
-      .delay(DELAY_MS)
       .reply(404, 'Not Found');
 
     await pageLoader({ url, output: tempDir });
