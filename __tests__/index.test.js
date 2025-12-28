@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import os from 'os';
 import nock from 'nock';
 import { fileURLToPath } from 'url';
-import pageLoader from '../app.js';
+import pageLoader from '../index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
