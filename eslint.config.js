@@ -1,5 +1,4 @@
 import globals from 'globals';
-
 import importPlugin from 'eslint-plugin-import';
 
 // mimic CommonJS variables -- not needed if using CommonJS
