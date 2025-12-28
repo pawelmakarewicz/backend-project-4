@@ -2,7 +2,7 @@ import path from 'path';
 import { writeFile, mkdir } from 'node:fs/promises';
 import Listr from 'listr';
 import {
-  info, fs,
+  info, fs, warn,
 } from './logger/index.js';
 import httpClient from './client/client.js';
 import {
@@ -36,7 +36,7 @@ function downloadResource({
     .then(() => ({ success: true, url: originalUrl }))
     .catch((err) => {
       console.error('✗ Download failed %s: %s', originalUrl, err.message);
-      return { success: false, url: originalUrl, error: err.message };
+      return Promise.reject(new Error(err.message));
     });
 }
 
@@ -80,12 +80,8 @@ function downloadAllResources(
         resourceType: res.type,
       };
     });
-
-    // const downloadPromises = resourcesData.map((resData) => downloadResource(resData));
-
     const tasks = createTasks(resourcesData);
-    // return Promise.all(downloadPromises);
-    return tasks.run();
+    return tasks.run().catch((err) => warn(err.message));
   });
 }
 
@@ -142,7 +138,7 @@ export default function pageLoader({ url, output }) {
       ).then(() => pathToOutputFile);
     })
     .then((pathToOutputFile) => {
-      info('✓ Page fully saved: %s', pathToOutputFile);
+      console.log('Page was sussefully downloaded into', pathToOutputFile);
       return pathToOutputFile;
     })
     .catch((err) => {

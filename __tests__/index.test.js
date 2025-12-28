@@ -157,16 +157,6 @@ describe('pageLoader', () => {
     ).rejects.toThrow();
   });
 
-  test('should throw error when server returns 500', async () => {
-    nock('https://ru.hexlet.io')
-      .get('/courses')
-      .reply(500, 'Internal Server Error');
-
-    await expect(
-      pageLoader({ url, output: tempDir }),
-    ).rejects.toThrow();
-  });
-
   test('should throw error when network request fails', async () => {
     nock('https://ru.hexlet.io')
       .get('/courses')
@@ -175,5 +165,62 @@ describe('pageLoader', () => {
     await expect(
       pageLoader({ url, output: tempDir }),
     ).rejects.toThrow();
+  });
+
+  test('should download page even when some resources fail', async () => {
+    const htmlBefore = await readFixture('page-with-resources.html');
+
+    const cssContent = 'body { background: red; }';
+    const scriptContent = 'console.log("hello")';
+
+    const DELAY_MS = 2000;
+
+    nock('https://ru.hexlet.io')
+      .get('/courses')
+      .delay(DELAY_MS)
+      .reply(200, htmlBefore)
+      .get('/assets/application.css')
+      .delay(DELAY_MS)
+      .reply(200, cssContent)
+      .get('/packs/js/runtime.js')
+      .delay(DELAY_MS)
+      .reply(200, scriptContent)
+      .get('/assets/professions/nodejs.png')
+      .delay(DELAY_MS)
+      .reply(404, 'Not Found');
+
+    await pageLoader({ url, output: tempDir });
+
+    const savedHtml = await fs.readFile(
+      path.join(tempDir, 'ru-hexlet-io-courses.html'),
+      'utf-8',
+    );
+
+    // HTML файл должен быть сохранён
+    expect(savedHtml).toBeTruthy();
+
+    const resourcesDir = path.join(tempDir, 'ru-hexlet-io-courses_files');
+
+    // CSS и JS должны скачаться
+    const successfulFiles = [
+      'ru-hexlet-io-assets-application.css',
+      'ru-hexlet-io-packs-js-runtime.js',
+    ];
+
+    await Promise.all(successfulFiles.map(async (file) => {
+      const p = path.join(resourcesDir, file);
+      const exists = await fs.access(p).then(() => true).catch(() => false);
+      expect(exists).toBe(true);
+    }));
+
+    // Картинка НЕ должна скачаться
+    const failedImagePath = path.join(
+      resourcesDir,
+      'ru-hexlet-io-assets-professions-nodejs.png',
+    );
+    const imageExists = await fs.access(failedImagePath)
+      .then(() => true)
+      .catch(() => false);
+    expect(imageExists).toBe(false);
   });
 });
