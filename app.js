@@ -1,7 +1,8 @@
 import path from 'path';
 import { writeFile, mkdir } from 'node:fs/promises';
+import Listr from 'listr';
 import {
-  info, warn, resource, fs,
+  info, fs,
 } from './logger/index.js';
 import httpClient from './client/client.js';
 import {
@@ -20,26 +21,40 @@ function resolveResourceUrl(resourceUrl, pageUrl) {
   }
 }
 
-function downloadResource(resourceUrl, resourcePath, originalUrl, resourceType) {
-  resource('Downloading %s: %s', resourceType, originalUrl);
-
+function downloadResource({
+  resourceUrl,
+  resourcePath,
+  originalUrl,
+  resourceType,
+}) {
   const downloadMethod = resourceType === 'html'
     ? httpClient.get(resourceUrl)
     : httpClient.getBinary(resourceUrl);
 
   return downloadMethod
     .then((data) => writeFile(resourcePath, data))
-    .then(() => {
-      resource('✓ Downloaded: %s', originalUrl);
-      return { success: true, url: originalUrl };
-    })
+    .then(() => ({ success: true, url: originalUrl }))
     .catch((err) => {
       console.error('✗ Download failed %s: %s', originalUrl, err.message);
       return { success: false, url: originalUrl, error: err.message };
     });
 }
 
-function downloadAllResources(resources, pageUrl, domain, folderName, outputPath) {
+const createTasks = (resources) => new Listr(
+  resources.map((res) => ({
+    title: res.resourceUrl,
+    task: () => downloadResource(res),
+  })),
+  { concurrent: true, exitOnError: false },
+);
+
+function downloadAllResources(
+  resources,
+  pageUrl,
+  domain,
+  folderName,
+  outputPath,
+) {
   if (resources.length === 0) {
     info('No local resources found');
     return Promise.resolve([]);
@@ -48,20 +63,30 @@ function downloadAllResources(resources, pageUrl, domain, folderName, outputPath
   info('Found %d resources to download', resources.length);
   const folderPath = path.join(outputPath, folderName);
 
-  return mkdir(folderPath, { recursive: true })
-    .then(() => {
-      fs('Directory created: %s', folderPath);
+  return mkdir(folderPath, { recursive: true }).then(() => {
+    fs('Directory created: %s', folderPath);
 
-      const downloadPromises = resources.map((res) => {
-        const fullUrl = resolveResourceUrl(res.url, pageUrl);
-        const resourcePath = generateResourcePath(res.url, domain, folderName);
-        const filePath = path.join(outputPath, resourcePath);
+    const resourcesData = resources.map((res) => {
+      const resourceUrl = resolveResourceUrl(res.url, pageUrl);
+      const resourcePath = path.join(
+        outputPath,
+        generateResourcePath(res.url, domain, folderName),
+      );
 
-        return downloadResource(fullUrl, filePath, res.url, res.type);
-      });
-
-      return Promise.all(downloadPromises);
+      return {
+        resourceUrl,
+        resourcePath,
+        originalUrl: res.url,
+        resourceType: res.type,
+      };
     });
+
+    // const downloadPromises = resourcesData.map((resData) => downloadResource(resData));
+
+    const tasks = createTasks(resourcesData);
+    // return Promise.all(downloadPromises);
+    return tasks.run();
+  });
 }
 
 export default function pageLoader({ url, output }) {
@@ -86,38 +111,35 @@ export default function pageLoader({ url, output }) {
       const fileName = `${fullUrl}.html`;
       const pathToOutputFile = path.join(outputDir, fileName);
 
-      return writeFile(pathToOutputFile, modifiedHtml)
-        .then(() => {
-          fs('HTML file saved: %s', pathToOutputFile);
-          return {
-            pathToOutputFile,
-            resources,
-            pageUrl: url,
-            domain,
-            folderName,
-            outputPath: outputDir,
-          };
-        });
+      return writeFile(pathToOutputFile, modifiedHtml).then(() => {
+        fs('HTML file saved: %s', pathToOutputFile);
+        return {
+          pathToOutputFile,
+          resources,
+          pageUrl: url,
+          domain,
+          folderName,
+          outputPath: outputDir,
+        };
+      });
     })
     .then((context) => {
       const {
-        pathToOutputFile, resources, pageUrl, domain, folderName, outputPath,
+        pathToOutputFile,
+        resources,
+        pageUrl,
+        domain,
+        folderName,
+        outputPath,
       } = context;
 
-      return downloadAllResources(resources, pageUrl, domain, folderName, outputPath)
-        .then((results) => {
-          const failed = results.filter((r) => !r.success);
-          const succeeded = results.filter((r) => r.success);
-
-          if (failed.length > 0) {
-            warn('Failed to download %d resources', failed.length);
-            failed.forEach((f) => warn('  - %s', f.url));
-          }
-
-          info('Successfully downloaded: %d/%d resources', succeeded.length, results.length);
-
-          return pathToOutputFile;
-        });
+      return downloadAllResources(
+        resources,
+        pageUrl,
+        domain,
+        folderName,
+        outputPath,
+      ).then(() => pathToOutputFile);
     })
     .then((pathToOutputFile) => {
       info('✓ Page fully saved: %s', pathToOutputFile);
